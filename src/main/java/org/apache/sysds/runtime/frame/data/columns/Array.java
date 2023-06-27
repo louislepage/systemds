@@ -360,7 +360,7 @@ public abstract class Array<T> implements Writable {
 			return changeType(t);
 
 		switch(t) {
-			case BOOLEAN:
+			case BITSET:
 				if(size() > ArrayFactory.bitSetSwitchPoint)
 					return new OptionalArray<Boolean>(changeTypeBitSet(), nulls);
 				else
@@ -394,7 +394,7 @@ public abstract class Array<T> implements Writable {
 	 */
 	public final Array<?> changeType(ValueType t) {
 		switch(t) {
-			case BOOLEAN:
+			case BITSET:
 				if(size() > ArrayFactory.bitSetSwitchPoint)
 					return changeTypeBitSet();
 				else

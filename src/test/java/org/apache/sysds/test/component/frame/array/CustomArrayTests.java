@@ -107,7 +107,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeBoolean1() {
 		StringArray a = ArrayFactory.create(new String[] {"1", "0", "0"});
-		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BITSET);
+		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BOOLEAN);
 		assertTrue(ai.get(0));
 		assertTrue(!ai.get(1));
 		assertTrue(!ai.get(2));
@@ -116,7 +116,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeBoolean2() {
 		StringArray a = ArrayFactory.create(new String[] {"1.0", "0.0", "0.0"});
-		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BITSET);
+		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BOOLEAN);
 		assertTrue(ai.get(0));
 		assertTrue(!ai.get(1));
 		assertTrue(!ai.get(2));
@@ -125,7 +125,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeBoolean3() {
 		StringArray a = ArrayFactory.create(new String[] {"1", null, "0"});
-		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BITSET);
+		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BOOLEAN);
 		assertTrue(ai.get(0));
 		assertTrue(!ai.get(1));
 		assertTrue(!ai.get(2));
@@ -134,7 +134,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeBoolean4() {
 		StringArray a = ArrayFactory.create(new String[] {"1.0", null, "0.0"});
-		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BITSET);
+		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BOOLEAN);
 		assertTrue(ai.get(0));
 		assertTrue(!ai.get(1));
 		assertTrue(!ai.get(2));
@@ -143,7 +143,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeBoolean5() {
 		StringArray a = ArrayFactory.create(new String[] {"t", null, "f"});
-		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BITSET);
+		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BOOLEAN);
 		assertTrue(ai.get(0));
 		assertTrue(!ai.get(1));
 		assertTrue(!ai.get(2));
@@ -152,7 +152,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeBoolean6() {
 		StringArray a = ArrayFactory.create(new String[] {"true", null, "false"});
-		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BITSET);
+		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BOOLEAN);
 		assertTrue(ai.get(0));
 		assertTrue(!ai.get(1));
 		assertTrue(!ai.get(2));
@@ -161,7 +161,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeBoolean7() {
 		StringArray a = ArrayFactory.create(new String[] {"True", null, "False"});
-		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BITSET);
+		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BOOLEAN);
 		assertTrue(ai.get(0));
 		assertTrue(!ai.get(1));
 		assertTrue(!ai.get(2));
@@ -170,7 +170,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeBoolean8() {
 		StringArray a = ArrayFactory.create(new String[] {"0.0", null, "1.0"});
-		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BITSET);
+		BooleanArray ai = (BooleanArray) a.changeType(ValueType.BOOLEAN);
 		assertTrue(!ai.get(0));
 		assertTrue(!ai.get(1));
 		assertTrue(ai.get(2));
@@ -180,28 +180,28 @@ public class CustomArrayTests {
 	public void analyzeValueTypeStringBoolean() {
 		StringArray a = ArrayFactory.create(new String[] {"1", "0", "0"});
 		ValueType t = a.analyzeValueType().getKey();
-		assertEquals(ValueType.BITSET, t);
+		assertEquals(ValueType.BOOLEAN, t);
 	}
 
 	@Test
 	public void analyzeValueTypeStringBoolean_withPointZero() {
 		StringArray a = ArrayFactory.create(new String[] {"1.0", "0", "0"});
 		ValueType t = a.analyzeValueType().getKey();
-		assertEquals(ValueType.BITSET, t);
+		assertEquals(ValueType.BOOLEAN, t);
 	}
 
 	@Test
 	public void analyzeValueTypeStringBoolean_withPointZero_2() {
 		StringArray a = ArrayFactory.create(new String[] {"1.00", "0", "0"});
 		ValueType t = a.analyzeValueType().getKey();
-		assertEquals(ValueType.BITSET, t);
+		assertEquals(ValueType.BOOLEAN, t);
 	}
 
 	@Test
 	public void analyzeValueTypeStringBoolean_withPointZero_3() {
 		StringArray a = ArrayFactory.create(new String[] {"1.00000000000", "0", "0"});
 		ValueType t = a.analyzeValueType().getKey();
-		assertEquals(ValueType.BITSET, t);
+		assertEquals(ValueType.BOOLEAN, t);
 	}
 
 	@Test
@@ -356,7 +356,7 @@ public class CustomArrayTests {
 	public void analyzeValueTypeDouble7() {
 		DoubleArray a = ArrayFactory.create(new double[] {1.0d, 0.0d, 1.0d});
 		ValueType t = a.analyzeValueType().getKey();
-		assertEquals(ValueType.BITSET, t);
+		assertEquals(ValueType.BOOLEAN, t);
 	}
 
 	@Test
@@ -1024,14 +1024,14 @@ public class CustomArrayTests {
 
 	@Test
 	public void optionalChangeToBoolean() {
-		Array<?> a = new OptionalArray<>(new Double[3]).changeTypeWithNulls(ValueType.BITSET);
+		Array<?> a = new OptionalArray<>(new Double[3]).changeTypeWithNulls(ValueType.BOOLEAN);
 		for(int i = 0; i < a.size(); i++)
 			assertEquals(null, a.get(i));
 	}
 
 	@Test
 	public void optionalChangeToBoolean2() {
-		Array<?> a = new OptionalArray<>(new Double[] {1.0, null, null}).changeTypeWithNulls(ValueType.BITSET);
+		Array<?> a = new OptionalArray<>(new Double[] {1.0, null, null}).changeTypeWithNulls(ValueType.BOOLEAN);
 		assertEquals(true, a.get(0));
 		for(int i = 1; i < a.size(); i++)
 			assertEquals(null, a.get(i));
@@ -1039,7 +1039,7 @@ public class CustomArrayTests {
 
 	@Test
 	public void optionalChangeToBoolean3() {
-		Array<?> a = new OptionalArray<>(new Double[67]).changeTypeWithNulls(ValueType.BITSET);
+		Array<?> a = new OptionalArray<>(new Double[67]).changeTypeWithNulls(ValueType.BOOLEAN);
 		a.set(0, "true");
 		a.set(a.size() - 1, "true");
 		assertEquals(true, a.get(0));
@@ -1068,7 +1068,7 @@ public class CustomArrayTests {
 
 	@Test
 	public void changeTypeBitSet() {
-		Array<?> a = new OptionalArray<>(new Character[324]).changeType(ValueType.BITSET);
+		Array<?> a = new OptionalArray<>(new Character[324]).changeType(ValueType.BOOLEAN);
 		assertTrue(a.isEmpty());
 	}
 
@@ -1143,7 +1143,7 @@ public class CustomArrayTests {
 	@Test
 	public void changeTypeNullsFromStringToBoolean() {
 		Array<?> a = new StringArray(new String[] {"1", null});
-		Array<?> b = a.changeTypeWithNulls(ValueType.BITSET);
+		Array<?> b = a.changeTypeWithNulls(ValueType.BOOLEAN);
 		assertEquals(true, b.get(0));
 		assertEquals(null, b.get(1));
 	}

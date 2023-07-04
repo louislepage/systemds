@@ -189,7 +189,7 @@ public class FrameArrayTests {
 		long memSize = a.getInMemorySize();
 		long estSize = ArrayFactory.getInMemorySize(a.getValueType(), a.size());
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				if(a instanceof BitSetArray)
 					estSize = BitSetArray.estimateInMemorySize(a.size());
 				else
@@ -229,7 +229,7 @@ public class FrameArrayTests {
 
 	@Test
 	public void changeTypeBoolean() {
-		changeType(ValueType.BITSET);
+		changeType(ValueType.BOOLEAN);
 	}
 
 	@Test
@@ -377,7 +377,7 @@ public class FrameArrayTests {
 				case INT64:
 					((Array<Long>) aa).set(start, end, (Array<Long>) a, off);
 					break;
-				case BITSET:
+				case BOOLEAN:
 					((Array<Boolean>) aa).set(start, end, (Array<Boolean>) a, off);
 					break;
 				case STRING:
@@ -428,7 +428,7 @@ public class FrameArrayTests {
 				case INT64:
 					((Array<Long>) aa).set(start, end, (Array<Long>) other);
 					break;
-				case BITSET:
+				case BOOLEAN:
 					((Array<Boolean>) aa).set(start, end, (Array<Boolean>) other);
 					break;
 				case STRING:
@@ -474,7 +474,7 @@ public class FrameArrayTests {
 				((Array<Long>) a).set(0, vl);
 				assertEquals(((Array<Long>) a).get(0), vl);
 				return;
-			case BITSET:
+			case BOOLEAN:
 				Boolean vb = true;
 				((Array<Boolean>) a).set(0, vb);
 				assertEquals(((Array<Boolean>) a).get(0), vb);
@@ -513,7 +513,7 @@ public class FrameArrayTests {
 			case INT64:
 				assertEquals(((Array<Long>) a).get(0), Long.valueOf((long) (double) vd));
 				return;
-			case BITSET:
+			case BOOLEAN:
 				assertEquals(((Array<Boolean>) a).get(0), vd == 1.0d);
 				return;
 			case STRING:
@@ -546,7 +546,7 @@ public class FrameArrayTests {
 			case INT64:
 				assertEquals(((Array<Long>) a).get(0), Long.valueOf((long) (double) vd));
 				return;
-			case BITSET:
+			case BOOLEAN:
 				assertEquals(((Array<Boolean>) a).get(0), false);
 				return;
 			case STRING:
@@ -564,16 +564,16 @@ public class FrameArrayTests {
 	public void analyzeValueType() {
 		ValueType av = a.analyzeValueType().getKey();
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				switch(av) {
-					case BITSET:
+					case BOOLEAN:
 						return;
 					default:
 						fail("Invalid type returned from analyze valueType " + av);
 				}
 			case INT32:
 				switch(av) {
-					case BITSET:
+					case BOOLEAN:
 					case INT32:
 					case UINT8:
 						return;
@@ -582,7 +582,7 @@ public class FrameArrayTests {
 				}
 			case INT64:
 				switch(av) {
-					case BITSET:
+					case BOOLEAN:
 					case INT32:
 					case UINT8:
 					case INT64:
@@ -592,7 +592,7 @@ public class FrameArrayTests {
 				}
 			case UINT8:
 				switch(av) {
-					case BITSET:
+					case BOOLEAN:
 					case UINT8:
 						return;
 					default:
@@ -600,7 +600,7 @@ public class FrameArrayTests {
 				}
 			case FP32:
 				switch(av) {
-					case BITSET:
+					case BOOLEAN:
 					case INT32:
 					case UINT8:
 					case INT64:
@@ -611,7 +611,7 @@ public class FrameArrayTests {
 				}
 			case FP64:
 				switch(av) {
-					case BITSET:
+					case BOOLEAN:
 					case INT32:
 					case UINT8:
 					case INT64:
@@ -650,7 +650,7 @@ public class FrameArrayTests {
 		Array<?> aa = a.clone();
 
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				aa.append("0");
 				assertEquals((Boolean) aa.get(aa.size() - 1), false);
 				aa.append("1");
@@ -745,7 +745,7 @@ public class FrameArrayTests {
 			assertEquals((String) aa.get(aa.size() - 1), null);
 		else {
 			switch(a.getValueType()) {
-				case BITSET:
+				case BOOLEAN:
 					assertEquals((Boolean) aa.get(aa.size() - 1), false);
 					break;
 				case FP32:
@@ -786,7 +786,7 @@ public class FrameArrayTests {
 			assertEquals((String) aa.get(aa.size() - 1), null);
 		else {
 			switch(a.getValueType()) {
-				case BITSET:
+				case BOOLEAN:
 					assertEquals((Boolean) aa.get(aa.size() - 1), false);
 					break;
 				case FP32:
@@ -824,7 +824,7 @@ public class FrameArrayTests {
 		try {
 
 			switch(a.getValueType()) {
-				case BITSET:
+				case BOOLEAN:
 					((Array<Boolean>) aa).setNz((Array<Boolean>) a);
 					break;
 				case FP32:
@@ -1045,7 +1045,7 @@ public class FrameArrayTests {
 	public void setNullType() {
 		Array<?> aa = a.clone();
 		switch(aa.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				((Array<Boolean>) aa).set(0, (Boolean) null);
 				assertTrue(aa.get(0) == null || aa.get(0).equals(Boolean.valueOf(false)));
 				break;
@@ -1089,7 +1089,7 @@ public class FrameArrayTests {
 		Array<?> aa = a.clone();
 
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				aa = ((Array<Boolean>) aa).append(new BooleanArray(new boolean[10]));
 				assertEquals(aa.size(), a.size() + 10);
 				for(int i = 0; i < 10; i++)
@@ -1148,7 +1148,7 @@ public class FrameArrayTests {
 		Array<?> aa = a.clone();
 		boolean isOptional = aa instanceof OptionalArray;
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				((Array<Boolean>) aa).append((Boolean) null);
 				assertEquals(aa.size(), a.size() + 1);
 				if(!isOptional)
@@ -1208,7 +1208,7 @@ public class FrameArrayTests {
 		Array<?> aa = a.clone();
 
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				try {
 					aa = ((Array<Boolean>) aa).append(new OptionalArray<>(new Boolean[10]));
 				}
@@ -1255,7 +1255,7 @@ public class FrameArrayTests {
 		boolean isOptional = aa instanceof OptionalArray;
 		aa.fill((String) null);
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				if(!isOptional)
 
 					for(int i = 0; i < aa.size(); i++)
@@ -1308,7 +1308,7 @@ public class FrameArrayTests {
 		// boolean isOptional = aa instanceof OptionalArray;
 		aa.fill("1");
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				for(int i = 0; i < aa.size(); i++)
 					assertEquals(aa.get(i), true);
 				break;
@@ -1348,7 +1348,7 @@ public class FrameArrayTests {
 	public void fill1Value() {
 		Array<?> aa = a.clone();
 		switch(a.getValueType()) {
-			case BITSET:
+			case BOOLEAN:
 				((Array<Boolean>) aa).fill(true);
 				for(int i = 0; i < aa.size(); i++)
 					assertEquals(aa.get(i), true);
@@ -1398,7 +1398,7 @@ public class FrameArrayTests {
 			Array<?> aa = a.clone();
 			boolean isOptional = aa instanceof OptionalArray;
 			switch(a.getValueType()) {
-				case BITSET:
+				case BOOLEAN:
 					((Array<Boolean>) aa).fill((Boolean) null);
 					if(!isOptional)
 						for(int i = 0; i < aa.size(); i++)

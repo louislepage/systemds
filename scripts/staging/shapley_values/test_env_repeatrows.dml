@@ -1,0 +1,100 @@
+
+m = matrix("0 1 1 1 0 0", cols=3, rows=2)
+
+batch_s = 3
+feature_n = 3
+
+pm("input", m)
+
+
+permutation_matrix = seq(1,6,1)
+pm("p_matrix",permutation_matrix)
+
+s_m = 3
+n = 6
+per_m_2 = (((permutation_matrix-1) %% s_m) * ceil(n / s_m) )  + ceil(permutation_matrix / s_m)
+pm("p_m_2",per_m_2)
+
+perm_one_hot = toOneHot(per_m_2, 6)
+pm("perm_one_hot", perm_one_hot)
+
+rep_m = repeatMatrix(m, 3)
+pm("rep_m", rep_m)
+
+reordered = perm_one_hot %*% rep_m
+pm("reordered", reordered)
+
+reorder_R = ceil(seq(1,nrow(m)*batch_s,1) / batch_s)
+pm("reorder_R", reorder_R)
+
+reorder_R_oneHot = toOneHot(reorder_R, nrow(m))
+pm("reorder_R_oneHot", reorder_R_oneHot)
+
+repeated_direct = reorder_R_oneHot %*% m
+pm("repeated_direct", repeated_direct)
+
+pm("function_rep_rows_d", repeatRows_d(m, batch_s))
+/*
+p = p %*% matrix(1, rows=1, cols=batch_s)
+pm("broadcast", p)
+
+p = matrix(p, rows=length(p), cols=1)
+pm("reshape", p)
+
+r = p%/%power_2 %% 2
+pm("r", r)
+
+r_func = toBinary(p, 3)
+pm("toBin", r_func)
+
+*/
+
+
+pm = function(String name, Matrix[Double] m){
+  print(name+":\n"+toString(m))
+}
+
+toDecimal = function(Matrix[Double] m)
+return(Matrix[Double] d){
+  powers_of_two = (2^(ncol(m)-t(seq(1,ncol(m),1))))
+  d = rowSums(m *  powers_of_two)
+}
+
+toBinary = function(Matrix[Double] d, Double ncols)
+return(Matrix[Double] m){
+  power_of_two = 2^(ncols-t(seq(1,ncols,1)))
+  m = d %/% power_of_two %% 2
+}
+
+repeatRows = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  #remeber cols to decode
+  n_cols = ncol(m)
+  #encode as decimal
+  m = toDecimal(m)
+  #broadcast to repeate rows
+  m = m %*% matrix(1, rows=1, cols=n_times)
+  #reshape to column vector
+  m = matrix(m, rows=length(m), cols=1)
+  #decode to binary
+  m = toBinary(m,n_cols)
+}
+
+repeatRows_d = function(Matrix[Double] m, Integer n_times)
+return(matrix[Double] m){
+  indices = ceil(seq(1,nrow(m)*n_times,1) / n_times)
+  R = toOneHot(indices, nrow(m))
+  m = R %*% m
+}
+
+repeatMatrix = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  n_rows=nrow(m)
+  n_cols=ncol(m)
+  #reshape to row vector
+  m = matrix(m, rows=1, cols=length(m))
+  #braoadcast
+  m = matrix(1, rows=n_times, cols=1) %*% m
+  #reshape to get matrix
+  m = matrix(m, rows=n_rows*n_times, cols=n_cols)
+}

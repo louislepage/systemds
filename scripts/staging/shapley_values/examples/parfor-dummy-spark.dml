@@ -1,0 +1,22 @@
+phis = malFunction( model_function="dummy_rand_model", X=100, Y=200)
+
+print("Avg:\n"+toString(avg(phis)))
+
+malFunction = function(String model_function, Integer X, Integer Y)
+return (Matrix[Double] A){
+  A  = matrix(0, rows=X, cols=Y)
+  #use below parfor to force in spark
+  parfor (i in 1:X, opt=CONSTRAINED, mode=REMOTE_SPARK ){
+  #for (i in 1:X){
+    #use function directly
+    #P = rand(rows=1, cols=Y )
+    #use eval
+    P = eval(model_function, list(Y=Y))
+    A[i] = P
+  }
+}
+
+dummy_rand_model = function(Integer Y)
+return( Matrix[Double] P){
+        P = rand(rows=1, cols=Y)
+}

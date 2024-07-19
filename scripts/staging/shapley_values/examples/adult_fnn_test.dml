@@ -1,0 +1,24 @@
+source("../../../nn/layers/feedForward.dml") as ff_pass
+
+print("--> Loading prepared Dataset")
+X = read("../data/adult/Adult_X.csv");
+y = read("../data/adult/Adult_y.csv");
+y = y-1
+
+print("--> Loading Model")
+model = read("../data/adult/ffn_model.bin")
+
+print("--> Testing model")
+#output = ff_pass::feedForward(X, model, FALSE)
+#predict = as.matrix(output[length(output)])
+p = ffPredict(model, X, 128)
+predict = (p >= 0.5)
+
+print("Preds:\n"+toString(predict[1:10]))
+print("Actual:\n"+toString(y[1:10]))
+
+#accuracy
+acc = mean(predict == y)
+print("Acc: "+acc)
+
+print("Mean:"+mean(y))

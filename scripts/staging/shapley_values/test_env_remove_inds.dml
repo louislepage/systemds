@@ -1,0 +1,177 @@
+source("../shapley-permutation-opt.dml") as SPO
+source("../shapley-utils.dml") as SPU
+
+permutation = matrix("3 1 2", rows=1, cols= 3)
+non_var_inds = matrix("2", rows=1, cols=1)
+short_permutation = matrix("3 1", rows=1, cols=2)
+pm("permutation", permutation)
+pm("short_permutation", short_permutation)
+
+mask = SPO::prepare_mask_for_permutation(permutation=permutation)
+pm("mask", mask)
+
+short_maks = SPO::prepare_mask_for_permutation(permutation=short_permutation, n_non_varying_inds=1)
+pm("short_mask", short_maks)
+
+rev_masks = SPO::prepare_mask_for_permutation(permutation=t(rev(t(permutation))))
+permutation = rbind(permutation,t(rev(t(permutation))))
+dub_masks = rbind(mask,rev_masks)
+rep_dub_mask=SPU::repeatRows(dub_masks,2)
+remove_test = remove_inds(rep_dub_mask, permutation, non_var_inds, 2)
+pm("remove_test", remove_test)
+compare=SPU::repeatRows(short_maks,2)
+compare[,2]=matrix(1, rows=8, cols=1)
+pm("compare", compare)
+check = remove_test[1:nrow(compare)] == compare
+print("Is same:"+prod(check))
+stop("STOP")
+input=matrix("3 1 2 1 2 3 2 3 1", rows=3, cols=3)
+pm("input", input)
+adapt = seq(0,length(input)-ncol(input), ncol(input))
+pm("adapt", adapt)
+total = input + adapt
+pm("total", total)
+total=matrix(total,rows=1, cols=length(input))
+pm("total", total)
+row_index = toOneHot(t(total), ncol(total))
+pm("row_index", row_index)
+
+#non_vars
+non_var_inds = matrix("2", rows=1, cols=1)
+pm("non_var_inds", non_var_inds)
+non_var_inds = matrix(1, rows=nrow(input), cols=ncol(non_var_inds)) * non_var_inds
+pm("non_var_inds", non_var_inds)
+non_var_total = non_var_inds + adapt
+pm("non_var_total", non_var_total)
+non_var_total=matrix(non_var_total,rows=1, cols=length(non_var_total))
+pm("non_var_total", non_var_total)
+non_var_mask = toOneHot(t(non_var_total), ncol(total))
+non_var_mask = colSums(non_var_mask)
+pm("non_var_mask", non_var_mask)
+
+non_var_rows = row_index %*% t(non_var_mask)
+pm("non_var_rows", non_var_rows)
+rs_rows = matrix(non_var_rows, rows=ncol(input), cols=nrow(input))
+pm("rs_rows", rs_rows)
+rs_rows_f = rbind(matrix(0,rows=1,cols=ncol(rs_rows)),rs_rows,rs_rows[1:nrow(rs_rows)-1])
+pm("rs_rows_f", rs_rows_f)
+rs_rows_f[nrow(rs_rows_f)] = rs_rows[nrow(rs_rows)] | rs_rows[nrow(rs_rows)-1]
+pm("rs_rows_f", rs_rows_f)
+rs_rows_fin = matrix(rs_rows_f, rows=length(rs_rows_f), cols=1, byrow=FALSE)
+pm("rs_rows_fin", rs_rows_fin)
+
+remove_inds = function(Matrix[Double] masks, Matrix[Double] full_permutations, Matrix[Double] non_var_inds, Integer batch_size)
+return(Matrix[Double] sub_mask){
+    offsets = seq(0,length(full_permutations)-ncol(full_permutations), ncol(full_permutations))
+    pm("############\noffsets",offsets)
+    pm("full_permutations",full_permutations)
+
+    ###
+    # get row indices from permutations
+    total_row_index = full_permutations + offsets
+    pm("total_row_index", total_row_index)
+    total_row_index = matrix(total_row_index, rows=length(total_row_index), cols=1)
+    pm("total_row_index", total_row_index)
+    #TODO: for some reason, i have to t() here, otherwise it only oneHots the first value...
+    row_index = toOneHot(total_row_index, nrow(total_row_index))
+    pm("row_index", row_index)
+
+
+    ####
+    # get indices for all permutations as boolean mask
+    # repeat inds for every permutation
+    non_var_inds = matrix(1, rows=nrow(full_permutations), cols=ncol(non_var_inds)) * non_var_inds
+    #add offset
+    non_var_total = non_var_inds + offsets
+    #reshape into col-vec
+    non_var_total = matrix(non_var_total,rows=length(non_var_total), cols=1, byrow=FALSE)
+    pm("non_var_total", non_var_total)
+    non_var_mask = toOneHot(non_var_total, nrow(total_row_index))
+    pm("non_var_mask", non_var_mask)
+
+    non_var_mask = colSums(non_var_mask)
+    pm("non_var_mask", non_var_mask)
+
+    ###
+    # multiply to get mask
+    non_var_rows = row_index %*% t(non_var_mask)
+    pm("non_var_rows", non_var_rows)
+
+    ####
+    # unfold to full mask length
+    # reshape to add for each permutations
+    reshaped_rows = matrix(non_var_rows, rows=ncol(full_permutations), cols=nrow(full_permutations), byrow=FALSE)
+    pm("reshaped_rows", reshaped_rows)
+
+    #rbind to manipulate all perms at once
+    reshaped_rows_full = rbind(matrix(0,rows=1,cols=ncol(reshaped_rows)),reshaped_rows,reshaped_rows[1:nrow(reshaped_rows)-1])
+    #fix last index
+    reshaped_rows_full[nrow(reshaped_rows_full)] = reshaped_rows[nrow(reshaped_rows)] | reshaped_rows[nrow(reshaped_rows)-1]
+    pm("reshaped_rows_full", reshaped_rows_full)
+    #reshape into col-vec
+    non_var_total = matrix(reshaped_rows_full, rows=length(reshaped_rows_full), cols=1, byrow=FALSE)
+    pm("non_var_total", non_var_total)
+
+    #replicate, if masks already replicated
+    if (batch_size > 1){
+    non_var_total = matrix(1, rows=nrow(non_var_total), cols=batch_size) * non_var_total
+    non_var_total = matrix(non_var_total, rows=length(non_var_total), cols=1)
+    }
+    pmr("masks", masks)
+    #remove from mask according to this vector
+    removed_short_mask = removeEmpty(target=masks, select=!non_var_total, margin="rows")
+    pm("removed_short_mask",removed_short_mask)
+
+    #set to 1 where non varying
+    sub_mask = removed_short_mask | non_var_mask[1, 1:ncol(removed_short_mask)]
+    pm("sub_mask", sub_mask)
+}
+
+########################################################################################################################
+########################################################################################################################
+
+pm = function(String name, Matrix[Double] m){
+print(name+":\n"+toString(m))
+}
+pmr= function(String name, Matrix[Double] m){
+m = cbind((seq(1,nrow(m),1)),m)
+print(name+":\n"+toString(m))
+}
+
+toDecimal = function(Matrix[Double] m)
+return(Matrix[Double] d){
+powers_of_two = (2^(ncol(m)-t(seq(1,ncol(m),1))))
+d = rowSums(m *  powers_of_two)
+}
+
+toBinary = function(Matrix[Double] d, Double ncols)
+return(Matrix[Double] m){
+power_of_two = 2^(ncols-t(seq(1,ncols,1)))
+m = d %/% power_of_two %% 2
+}
+
+repeatRows = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+#remeber cols to decode
+n_cols = ncol(m)
+#encode as decimal
+m = toDecimal(m)
+#broadcast to repeate rows
+m = m %*% matrix(1, rows=1, cols=n_times)
+#reshape to column vector
+m = matrix(m, rows=length(m), cols=1)
+#decode to binary
+m = toBinary(m,n_cols)
+}
+
+repeatMatrix = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+n_rows=nrow(m)
+n_cols=ncol(m)
+#reshape to row vector
+m = matrix(m, rows=1, cols=length(m))
+#braoadcast
+m = matrix(1, rows=n_times, cols=1) %*% m
+#reshape to get matrix
+m = matrix(m, rows=n_rows*n_times, cols=n_cols)
+}

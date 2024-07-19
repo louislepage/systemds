@@ -1,0 +1,44 @@
+tableSchema = "int,double,double,double,double,double,double,double,double,double";
+H = read("./data/housing_data.csv", format="csv", header=TRUE, sep=",", rows=20641, cols=9)
+H_target = read("./data/housing_target.csv", format="csv", header=TRUE, sep=",", rows=20641, cols=2)
+
+
+# train and test splits
+random_samples_indices = sample(nrow(H), 3000, 1234)
+X = matrix(0, rows=2000, cols=8)
+y = matrix(0, rows=2000, cols=1)
+
+X_test  = matrix(0, rows=1000, cols=8)
+y_test  = matrix(0, rows=1000, cols=1)
+
+print("Creating train and test splits.")
+for (i in 1:2000) {
+  X[i, ] = H[as.scalar(random_samples_indices[i]),2:9]
+  y[i, ] = H_target[as.scalar(random_samples_indices[i]),2]
+}
+
+write(X, "./data/X_train.csv", format="csv")
+write(y, "./data/y_train.csv", format="csv")
+
+for(j in 2001:3000) {
+  X_test[j-2000, ] = H[as.scalar(random_samples_indices[j]),2:9]
+  y_test[j-2000, ] = H_target[as.scalar(random_samples_indices[j]),2]
+}
+
+write(X_test, "./data/X_test.csv", format="csv")
+write(y_test, "./data/y_test.csv", format="csv")
+
+model_kind = ifdef($model_kind, "xgboost")
+if( model_kind == "xgboost"){
+  print("Training xgboost tree...")
+  #M = xgboost(X=X, y=y)
+  #write(M, "./data/xgBoostModel_housing.csv", format="csv")
+}
+
+if( model_kind == "decisionTree"){
+  print("Training decisionTree...")
+  R=matrix(1, rows=1, cols=ncol(X))
+  M = decisionTree(X=X, y=y, ctypes=R, verbose=TRUE)
+  write(M, "./data/decisionTreeModel_housing.csv", format="csv")
+}
+

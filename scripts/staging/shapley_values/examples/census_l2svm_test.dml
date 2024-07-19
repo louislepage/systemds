@@ -1,0 +1,8 @@
+x = read("../data/census/census_xTrain.csv")
+y = read("../data/census/census_yTrain_corrected.csv")
+
+bias = read("../data/census/census_bias.csv")
+
+[y_predict_test, n] = l2svmPredict(X=x, W=bias, verbose=TRUE)
+
+print(toString(y_predict_test[1:10]))

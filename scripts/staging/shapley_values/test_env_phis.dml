@@ -1,0 +1,93 @@
+source("../shapley-permutation-opt.dml") as SPO
+permutation = matrix("2 3 4 1 5", cols=5, rows=1)
+pm("permutation", permutation)
+perm_len = ncol(permutation)
+
+mask = SPO::prepare_mask_for_permutation(permutation)
+pmr("mask", mask)
+
+test_preds = matrix("10 21 22 23 24 100 34 33 32 31", rows=10, cols=1)
+pmr("test_preds", test_preds)
+
+
+pmr("test_preds_prepped", test_preds)
+
+fw = test_preds[2:perm_len+1] - test_preds[1:perm_len]
+fb = test_preds[perm_len+1:2*perm_len-1] - test_preds[perm_len+2:2*perm_len]
+last = test_preds[2*perm_len] - test_preds[1]
+fb = rbind(fb,last)
+phis = cbind(fw, rev(fb))
+
+#pmr("fw", fw)
+#pmr("fb", fb)
+#pmr("phis", phis)
+
+perm_phis = cbind(t(permutation),phis)
+
+#pmr("perm_phis",perm_phis)
+
+sort_phis = order(target=perm_phis, by=1)
+#pmr("sort_phis", sort_phis)
+
+phis = sort_phis[,2:3]
+pmr("phis", phis)
+
+
+
+test_phis = SPO::compute_phis_from_prediction_means(test_preds, permutation)
+pmr("test_phis", test_phis)
+
+
+
+
+
+
+
+########################################################################################################################
+########################################################################################################################
+
+pm = function(String name, Matrix[Double] m){
+    print(name+":\n"+toString(m))
+  }
+pmr= function(String name, Matrix[Double] m){
+    m = cbind((seq(1,nrow(m),1)),m)
+    print(name+":\n"+toString(m))
+  }
+
+toDecimal = function(Matrix[Double] m)
+return(Matrix[Double] d){
+  powers_of_two = (2^(ncol(m)-t(seq(1,ncol(m),1))))
+  d = rowSums(m *  powers_of_two)
+}
+
+toBinary = function(Matrix[Double] d, Double ncols)
+return(Matrix[Double] m){
+  power_of_two = 2^(ncols-t(seq(1,ncols,1)))
+  m = d %/% power_of_two %% 2
+}
+
+repeatRows = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  #remeber cols to decode
+  n_cols = ncol(m)
+  #encode as decimal
+  m = toDecimal(m)
+  #broadcast to repeate rows
+  m = m %*% matrix(1, rows=1, cols=n_times)
+  #reshape to column vector
+  m = matrix(m, rows=length(m), cols=1)
+  #decode to binary
+  m = toBinary(m,n_cols)
+}
+
+repeatMatrix = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  n_rows=nrow(m)
+  n_cols=ncol(m)
+  #reshape to row vector
+  m = matrix(m, rows=1, cols=length(m))
+  #braoadcast
+  m = matrix(1, rows=n_times, cols=1) %*% m
+  #reshape to get matrix
+  m = matrix(m, rows=n_rows*n_times, cols=n_cols)
+}

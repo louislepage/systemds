@@ -1,0 +1,36 @@
+source("./shapley-sampling.dml") as shapleySampling
+
+X_bg = read("data/X_train.csv")
+M = read("data/xgBoostModel_housing.csv")
+
+x = X_bg[2,]
+print("Sample: "+toString(x))
+num_iter = 2000
+
+S = matrix(1, rows=1, cols=ncol(x))
+/*
+for (feature_idx in 1:ncol(x)) {
+  S[1,feature_idx] = shapleySampling::shapley_sampling(
+    model_function="xgboostPredictRegression",
+    model_args = list(M=M),
+    x=x,
+    feature_index=feature_idx,
+    X_bg=X_bg,
+    samples=num_iter,
+    seed=1337
+  )
+}
+  */
+S = shapleySampling::shapley_sampling(
+model_function="xgboostPredictRegression",
+model_args = list(M=M),
+x=x,
+feature_indices=list(1,2,3,4,5,6,7,8),
+X_bg=X_bg,
+samples=2000,
+seed=1337
+)
+print("Shapley Values for all features:")
+for (i in 1:ncol(S)) {
+  print("idx "+i+" :"+as.scalar(S[1,i]))
+}

@@ -1,0 +1,62 @@
+source("./shapley-sampling.dml") as shapleySampling
+
+
+# feature if interest
+feature_index = 2
+# iterations
+num_iter = 1000
+
+# read model
+M = read ("/Users/louislepage/Documents/Gitlab/ma-thesis/workspace/data/xgBoostModel_scalar.csv")
+
+# generate background data
+N_rows = 10000
+M_cols = 2
+X_bg = round(rand(rows=N_rows, cols=M_cols, min=0, max=1, seed=1337))
+
+#pick sample
+x = X_bg[2,]
+print("Sample: \n" + toString(x))
+
+/*
+###
+# One feature
+###
+X_test = shapleySampling::shapley_samplig_prepare(
+  x=x,
+  feature_index=feature_index,
+  X_bg=X_bg,
+  samples=num_iter,
+  seed=1337
+)
+
+P = xgboostPredictRegression(X=X_test, M=M, learning_rate=0.3)
+
+s = shapleySampling::shapley_samplig_compute(P)
+
+print("Result: "+toString(s))
+*/
+
+
+###
+# All features with parfor loop
+###
+
+
+S = matrix(0, rows=1, cols=ncol(x))
+
+parfor (feature_idx in 1:ncol(x)) {
+  X_test_loop = shapleySampling::shapley_samplig_prepare(
+  x=x,
+  feature_index=feature_idx,
+  X_bg=X_bg,
+  samples=num_iter,
+  seed=1337
+  )
+
+  P_loop = xgboostPredictRegression(X=X_test_loop, M=M, learning_rate=0.3)
+
+  S[1,feature_idx] = shapleySampling::shapley_samplig_compute(P_loop)
+}
+
+print("Shapley Values for all features: "+toString(S))

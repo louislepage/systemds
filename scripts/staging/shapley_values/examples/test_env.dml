@@ -1,0 +1,154 @@
+source("../shapley-permutation-opt.dml") as SPO
+source("../shapley-utils.dml") as SPU
+
+range = t(cumsum(matrix(1,rows=7, cols=1)))
+pm("range", range)
+
+perm = matrix("3 1 2", rows=1, cols=3)
+
+mask = prepare_mask_for_permutation(permutation=perm)
+pm("mask", mask)
+
+b = matrix("1 2 3 4 5 6", rows=2, cols=3)
+
+r = c_repeatRows(b, 3)
+pm("r", r)
+
+prepare_mask_for_permutation = function(Matrix[Double] permutation, Integer n_non_varying_inds=0, Matrix[Double] partitions = as.matrix(-1))
+return (Matrix[Double] masks){
+
+  if(sum(partitions)!=-1){
+    #can't use n_non_varying_inds and partitions at the same time
+    if(n_non_varying_inds > 0){
+      stop("prepare_mask_for_permutation:ERROR: Can't use n_non_varying_inds and partitions at the same time.")
+    }
+    #number of features not in permutation is diff between start and end of partitions, since first feature remains in permutation
+    skip_inds = partitions[2,] - partitions[1,]
+    #remove from permutation
+    rm_mask = matrix(0, rows=1, cols=ncol(permutation))
+    for (i in 1:ncol(partitions)){
+      perm_start = as.scalar(partitions[1,i])
+      perm_end   = as.scalar(partitions[2,i])
+      #include perm_start as representative of partition
+      rm_mask = rm_mask + (permutation > perm_start) * (permutation <= perm_end)
+      #pm("rm_mask", rm_mask)
+    }
+    permutation = removeEmpty(target=permutation, margin="cols", select=!rm_mask)
+    #pm("permutation", permutation)
+    #skip these inds by treating them as non varying
+    n_non_varying_inds = sum(skip_inds)
+  }
+
+  #total number of features
+  perm_len = ncol(permutation)+n_non_varying_inds
+  if(n_non_varying_inds > 0){
+    #prep full constructor with placeholders
+    mask_constructor = matrix(perm_len+1, rows=1, cols = perm_len)
+    mask_constructor[1,perm_len-ncol(permutation)+1:perm_len] = permutation
+  }else{
+    mask_constructor=permutation
+  }
+
+  perm_cols = ncol(mask_constructor)
+
+  # we compute mask on reverse permutation wnd reverse it later to get desired shape
+
+  # create row indicator vector ctable
+  perm_mask_rows = seq(1,perm_cols)
+  #TODO: col-vector and matrix mult?
+  perm_mask_rows = matrix(1, rows=perm_cols, cols=perm_cols) * perm_mask_rows
+  perm_mask_rows = lower.tri(target=perm_mask_rows, diag=TRUE, values=TRUE)
+
+  perm_mask_rows = removeEmpty(target=matrix(perm_mask_rows, rows=1, cols=length(perm_mask_rows)), margin="cols")
+
+  # create column indicator for ctable
+  rev_permutation = t(rev(t(mask_constructor)))
+  #TODO: col-vector and matrix mult?
+  perm_mask_cols = matrix(1, rows=perm_cols, cols=perm_cols) * rev_permutation
+  perm_mask_cols = lower.tri(target=perm_mask_cols, diag=TRUE, values=TRUE)
+  perm_mask_cols = removeEmpty(target = matrix(perm_mask_cols, cols=length(perm_mask_cols), rows=1), margin="cols")
+
+  #ctable
+  masks = table(perm_mask_rows, perm_mask_cols, perm_len, perm_len)
+  if(n_non_varying_inds > 0){
+    #truncate non varying rows
+    masks = masks[1:ncol(permutation)]
+    #replicate mask from first feature of each partionton to entire partitions
+
+    if(sum(partitions)!=-1){
+      for ( i in 1:ncol(partitions) ){
+        p_start = as.scalar(partitions[1,i])
+        p_end   = as.scalar(partitions[2,i])
+        test = masks[,p_start] %*% matrix(1, rows=1, cols=p_end-p_start)
+        masks[,p_start+1:p_end] = test
+      }
+    }
+  }
+
+  # add inverted mask and revert order for desired shape for forward and backward pass
+  masks = rev(rbind(masks, !masks))
+}
+
+c_repeatRows = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  #get indices for new rows (e.g. 1,1,1,2,2,2 for 2 rows, each replicated 3 times)
+  indices = seq(1,nrow(m)) %*% matrix(1, rows=1, cols=n_times)
+  indices = matrix(indices, rows=length(indices), cols=1)
+
+  pm("indices", indices)
+  #to one hot, so we get a replication matrix R
+  R = toOneHot(indices, nrow(m))
+
+  pm("R", R)
+  #matrix-mulitply to repeat rows
+  m = R %*% m
+}
+
+########################################################################################################################
+########################################################################################################################
+
+pm = function(String name, Matrix[Double] m){
+    print(name+":\n"+toString(m))
+  }
+pmr= function(String name, Matrix[Double] m){
+    m = cbind((seq(1,nrow(m),1)),m)
+    print(name+":\n"+toString(m))
+  }
+
+toDecimal = function(Matrix[Double] m)
+return(Matrix[Double] d){
+  powers_of_two = (2^(ncol(m)-t(seq(1,ncol(m),1))))
+  d = rowSums(m *  powers_of_two)
+}
+
+toBinary = function(Matrix[Double] d, Double ncols)
+return(Matrix[Double] m){
+  power_of_two = 2^(ncols-t(seq(1,ncols,1)))
+  m = d %/% power_of_two %% 2
+}
+
+repeatRows = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  #remeber cols to decode
+  n_cols = ncol(m)
+  #encode as decimal
+  m = toDecimal(m)
+  #broadcast to repeate rows
+  m = m %*% matrix(1, rows=1, cols=n_times)
+  #reshape to column vector
+  m = matrix(m, rows=length(m), cols=1)
+  #decode to binary
+  m = toBinary(m,n_cols)
+}
+
+repeatMatrix = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  n_rows=nrow(m)
+  n_cols=ncol(m)
+  #reshape to row vector
+  m = matrix(m, rows=1, cols=length(m))
+  #braoadcast
+  m = matrix(1, rows=n_times, cols=1) %*% m
+  #reshape to get matrix
+  m = matrix(m, rows=n_rows*n_times, cols=n_cols)
+}

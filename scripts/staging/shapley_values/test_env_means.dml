@@ -1,0 +1,24 @@
+perm_cols=4
+perm_base = t(rev(t(matrix("3 2 4 1", cols=4, rows=1))))
+
+batch_s = 3
+feature_n = 3
+
+m = matrix("10 100 1000 20 200 2000 30 300 3000 40 400 4000 50 500 5000 60 600 6000", rows=6, cols=3)
+print(toString(m))
+
+m = matrix(t(m), cols=1, rows=length(m))
+print(toString(m))
+
+m = matrix(m, cols=batch_s, rows=length(m)/batch_s)
+print(toString(m))
+
+m = rowMeans(m)
+print(toString(m))
+
+m = matrix(m, rows=feature_n, cols=length(m)/feature_n)
+print(toString(m))
+
+m = t(m)
+print(toString(m))
+

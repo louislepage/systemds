@@ -1,0 +1,24 @@
+source("../shapley-utils.dml") as SPU
+
+print("Loading Dataset")
+F = read("../data/Adult.csv", data_type="frame", format="csv", header=FALSE);
+
+print(toString(F[5]))
+jspec2= "{ ids:true, recode:[2,4,6,7,8,9,10,14,15]}"
+
+print("Recoding categorical features")
+[X,M] = transformencode(target=F, spec=jspec2);
+print(toString(X[5]))
+
+y = X[,ncol(X)];
+X = X[,2:(ncol(X)-1)]
+
+print("Rescaling features")
+X = scale(X=X)
+print(toString(X[5]))
+
+print("Creating train- and test-splits")
+[Xtrain,Xtest,ytrain,ytest] = split(X=X,Y=y,f=0.7,cont=FALSE,seed=7)
+
+print("Training KNN")
+[NNR, PR, FI] = knn(Train=Xtrain, Test=ytrain, k_value=2)

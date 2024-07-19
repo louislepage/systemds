@@ -1,0 +1,159 @@
+source("../shapley-permutation-opt.dml") as SPO
+source("../shapley-utils.dml") as SPU
+
+permutation = matrix("3 1 2", rows=1, cols= 3)
+non_var_inds = matrix("2", rows=1, cols=1)
+short_permutation = matrix("3 1", rows=1, cols=2)
+pm("permutation", permutation)
+pm("short_permutation", short_permutation)
+
+mask = SPO::prepare_mask_for_permutation(permutation=permutation)
+pm("mask", mask)
+
+short_maks = SPO::prepare_mask_for_permutation(permutation=short_permutation, n_non_varying_inds=1)
+pm("short_mask", short_maks)
+
+multi_permutations = matrix("1 2 3 4 4 2 1 3", rows=2, cols=4)
+P = matrix("1.1 1.4 1.5 1.8 2.1 2.2 2.5 2.6", rows=8, cols=1)
+pm("P",P)
+non_var = matrix("2 3", rows=1, cols=2)
+pm("non_var", non_var)
+
+#phis = compute_phis_from_prediction_means(P_perm=P, permutations=multi_permutations, non_var_inds=non_var)
+#pmr("phis", phis)
+
+
+
+m = matrix("0 0 1 1 1 1 0 0 1 1", rows=5, cols = 2)
+l = matrix("1 0", rows = 1, cols=2)
+pm("m",m)
+a = (!m) * seq(1, nrow(m),1)
+pm("a", a)
+
+c_max = colMaxs(a)
+pm("c_max", c_max)
+c_oh = t(toOneHot(t(c_max), nrow(m)))
+pm("c_oh", c_oh)
+
+fin = c_oh * l
+pm("fin", fin)
+
+stop("STOP")
+pm("multi_permutations", multi_permutations)
+non_var = matrix("2 1", rows=1, cols=2)
+pm("non_var", non_var)
+rem_sel = outer(matrix(multi_permutations, rows=length(multi_permutations), cols=1), non_var, "==")
+pm("rem_sel", rem_sel)
+rem_sel = rowSums(rem_sel)
+pm("rem_sel", rem_sel)
+rem_sel = matrix(rem_sel, rows=nrow(multi_permutations), cols=ncol(multi_permutations))
+pm("rem_sel", rem_sel)
+
+compute_phis_from_prediction_means = function(Matrix[Double] P_perm, Matrix[Double] permutations, Matrix[Double] non_var_inds=as.matrix(-1))
+return(Matrix[Double] phis){
+  pm("P_perm", P_perm)
+  pm("permutations", permutations)
+  perm_len=ncol(permutations)
+  n_non_var_inds = 0
+  partial_permutations = permutations
+  if(sum(non_var_inds)>0){
+    n_non_var_inds = ncol(non_var_inds)
+    #flatten perms to remove from all perms at once
+    perms_flattened = matrix(permutations, rows=length(permutations), cols=1)
+    rem_selector = outer(perms_flattened, non_var_inds, "==")
+    rem_selector = rowSums(rem_selector)
+    partial_permutations = removeEmpty(target=perms_flattened, select=!rem_selector, margin="rows")
+    #reshape
+    partial_permutations = matrix(partial_permutations, rows=perm_len-n_non_var_inds, cols=nrow(permutations))
+    perm_len = perm_len-n_non_var_inds
+  }
+
+
+  #reshape P_perm to get one col per permutation
+  P_perm = matrix(P_perm, rows=2*perm_len, cols=nrow(permutations), byrow=FALSE)
+  pm("P_perm", P_perm)
+
+  #compute forward results (inds_with - inds_without)
+  forward_phis = P_perm[2:perm_len+1] - P_perm[1:perm_len]
+  pm("forward_phis", forward_phis)
+
+  #compute backwards results reverse of (inds_with - inds_without) for first n-1 phis
+  # --> breaks, if only on feature changes
+  backward_phis = P_perm[perm_len+1:2*perm_len-1] - P_perm[perm_len+2:2*perm_len]
+  #compute last backward, because we reuse result from index 1 to have less model calls
+  backward_phis = rbind(backward_phis, P_perm[2*perm_len] - P_perm[1])
+  pm("backward_phis", backward_phis)
+
+  ###
+  #avg forward and backward
+  forward_phis = matrix(forward_phis, rows=length(forward_phis), cols=1, byrow=FALSE)
+  backward_phis = matrix(backward_phis, rows=length(backward_phis), cols=1, byrow=FALSE)
+  pm("forward_phis", forward_phis)
+  pm("backward_phis", backward_phis)
+  avg_phis = (forward_phis + backward_phis) / 2
+
+  /*add zero phis for non_var_inds
+  if (sum(non_var_inds)>0){
+    #prepare additional phis
+    additional_phis = matrix(0, rows=n_non_var_inds, cols=3)
+    #add non varying inds to first col for sorting
+    additional_phis[,1]=t(non_var_inds)
+    phis = rbind(phis,additional_phis)
+  }
+  */
+  pm("avg_phis", avg_phis)
+  #aggregate to get only one phi per feature (and implicitly add zeros for non var inds)
+  perms_flattened = matrix(partial_permutations, rows=length(partial_permutations), cols=1)
+  phis = aggregate(target=avg_phis, groups=perms_flattened, fn="mean", ngroups=ncol(permutations))
+  pm("phis", phis)
+}
+
+
+########################################################################################################################
+########################################################################################################################
+
+pm = function(String name, Matrix[Double] m){
+    print(name+":\n"+toString(m))
+  }
+pmr= function(String name, Matrix[Double] m){
+    m = cbind((seq(1,nrow(m),1)),m)
+    print(name+":\n"+toString(m))
+  }
+
+toDecimal = function(Matrix[Double] m)
+return(Matrix[Double] d){
+  powers_of_two = (2^(ncol(m)-t(seq(1,ncol(m),1))))
+  d = rowSums(m *  powers_of_two)
+}
+
+toBinary = function(Matrix[Double] d, Double ncols)
+return(Matrix[Double] m){
+  power_of_two = 2^(ncols-t(seq(1,ncols,1)))
+  m = d %/% power_of_two %% 2
+}
+
+repeatRows = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  #remeber cols to decode
+  n_cols = ncol(m)
+  #encode as decimal
+  m = toDecimal(m)
+  #broadcast to repeate rows
+  m = m %*% matrix(1, rows=1, cols=n_times)
+  #reshape to column vector
+  m = matrix(m, rows=length(m), cols=1)
+  #decode to binary
+  m = toBinary(m,n_cols)
+}
+
+repeatMatrix = function(Matrix[Double] m, Integer n_times)
+return(Matrix[Double] m){
+  n_rows=nrow(m)
+  n_cols=ncol(m)
+  #reshape to row vector
+  m = matrix(m, rows=1, cols=length(m))
+  #braoadcast
+  m = matrix(1, rows=n_times, cols=1) %*% m
+  #reshape to get matrix
+  m = matrix(m, rows=n_rows*n_times, cols=n_cols)
+}

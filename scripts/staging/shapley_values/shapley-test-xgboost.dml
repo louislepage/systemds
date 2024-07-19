@@ -1,0 +1,36 @@
+source("./shapley-sampling.dml") as shapleySampling
+
+
+# feature if interest
+feature_index = 1
+# iterations
+num_iter = 1000
+
+# read model
+M = read ("/Users/louislepage/Documents/Gitlab/ma-thesis/workspace/data/xgBoostModel_scalar.csv")
+
+# generate background data
+N_rows = 10000
+M_cols = 2
+X_bg = round(rand(rows=N_rows, cols=M_cols, min=0, max=1, seed=1337))
+
+#pick sample
+x = X_bg[2,]
+print("Sample: \n" + toString(x))
+
+s = shapleySampling::shapley_sampling_xgboost_regression_matrix(
+  x=x,
+  feature_idx=feature_index,
+  M=M,
+  learning_rate=0.3,
+  X_bg=X_bg,
+  iterations=num_iter,
+  seed=1337)
+
+
+
+print("Result: "+toString(s))
+
+
+
+
